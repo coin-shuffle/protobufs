@@ -37,11 +37,21 @@ message ShuffleEvent {
   string id = 1;
 
   oneof body {
-    ShuffleError     error           = 2;
-    ShuffleInfo      shuffle_info    = 3;
-    EncodedOutputs   encoded_outputs = 4;
-    TxSigningOutputs tx_signing_data = 5;
-    ShuffleTxHash    shuffle_tx_hash = 6;
+    // 0. An error acquired on one of the steps below
+    ShuffleError error = 2;
+    // 1. Receiving of this event means starting of the shuffle process.
+    ShuffleInfo shuffle_info = 3;
+    // 2. Receiving of encoded outputs of all participants in the room.
+    //    After that participant using `ShuffleRound` RPC MUST pass decoded
+    //    outputs to continue shuffle process.
+    EncodedOutputs encoded_outputs = 4;
+    // 3. Receiving decoded outputs of all participants in the room.
+    //    After receiving this event, participant MUST pass signature of
+    //    concatenation of his input and outputs of all other participants
+    //    using `SignShuffleTx` RPC.
+    TxSigningOutputs tx_signing_outputs = 5;
+    // 4. The result transaction hash. The shuffle process is finished.
+    ShuffleTxHash shuffle_tx_hash = 6;
   }
 }
 
@@ -96,8 +106,8 @@ message ShuffleRoundResponse {}
 message SignShuffleTxRequest {
   BaseRequest base = 1;
 
-  // HEX encoded transaction hash
-  string tx_hash = 2;
+  // ECDSA Signature of participant's input and list of all outputs
+  string signature = 2;
 }
 
 message SignShuffleTxResponse {}
@@ -110,5 +120,4 @@ service ShuffleService {
 
   rpc ShuffleRound(ShuffleRoundRequest) returns(ShuffleRoundResponse);
   rpc SignShuffleTx(SignShuffleTxRequest) returns(SignShuffleTxResponse);
-  // rpc ShuffleTxHash(ServiceRequest) returns(ServiceResponse);
 }
