@@ -1,7 +1,13 @@
 syntax = "proto3";
 package coin_shuffle.v1;
 
-import "coin_shuffle/v1/auth.proto";
+message RoomAccessJWT {
+  // header:    base64({"alg":"HS256","typ":"JWT"})
+  // payload:   base64({"room_id":"2ee1deab-40b0-4155-b8ab-b2c253e9f6f6","exp":"123456789"})
+  // signature: base64(HMACSHA256(header.payload, secret))
+  // jwt:       header.payload.signature
+  string jwt = 1;
+}
 
 message BaseRequest {
   string id = 1;
