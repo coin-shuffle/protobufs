@@ -1,0 +1,114 @@
+syntax = "proto3";
+package coin_shuffle.v1;
+
+import "coin_shuffle/v1/auth.proto";
+
+message BaseRequest {
+  string id = 1;
+  RoomAccessJWT jwt = 2;
+}
+
+message JoinShuffleRoomRequest {
+  // UTXO id that shuffle participant wanna use for shuffle
+  string utxo = 1;
+
+  // ECDSA Signature of the UTXO ID with the UTXO owner private key
+  string sign = 2;
+}
+
+message JoinShuffleRoomResponse {
+  RoomAccessJWT access_jwt = 2;
+}
+
+message ConnectShuffleRoomRequest {
+  BaseRequest base = 1;
+}
+
+message ShuffleError {
+  string error = 1;
+
+  enum Code {
+    CODE_UNSPECIFIED = 0;
+  }
+}
+
+message ShuffleEvent {
+  // Unique event identifier
+  string id = 1;
+
+  oneof body {
+    ShuffleError     error           = 2;
+    ShuffleInfo      shuffle_info    = 3;
+    EncodedOutputs   encoded_outputs = 4;
+    TxSigningOutputs tx_signing_data = 5;
+    ShuffleTxHash    shuffle_tx_hash = 6;
+  }
+}
+
+message IsReadyForShuffleRequest {
+  BaseRequest base = 1;
+}
+
+message IsReadyForShuffleResponse {
+  bool ready = 1;
+}
+
+message ShuffleInfo {
+  // Shuffle participants number
+  int32 participants_number = 1;
+
+  // Participant's serial number in the shuffle process
+  int32 node_serial_number  = 2;
+
+  // HEX encoded shuffle participants public keys.
+  // Unique for every user depend on serial number
+  repeated string public_keys_list = 3;
+}
+
+message EncodedOutputs {
+  // RSA encoded shuffle participants outputs equal to output addresses
+  repeated string outputs_list = 1;
+}
+
+message TxSigningOutputs {
+  // Transaction outputs for signing
+  repeated string outputs = 1;
+}
+
+message ShuffleTxHash {
+  // Shuffle transaction hash
+  string tx_hash = 1;
+}
+
+message DecodedOutputs {
+  // HEX encoded shuffle participants outputs; equal to output addresses
+  repeated string outputs_list = 1;
+}
+
+message ShuffleRoundRequest {
+  BaseRequest base = 1;
+
+  DecodedOutputs encoded_outputs = 2;
+}
+
+message ShuffleRoundResponse {}
+
+message SignShuffleTxRequest {
+  BaseRequest base = 1;
+
+  // HEX encoded transaction hash
+  string tx_hash = 2;
+}
+
+message SignShuffleTxResponse {}
+
+service ShuffleService {
+  rpc JoinShuffleRoom(JoinShuffleRoomRequest) returns(JoinShuffleRoomResponse);
+  rpc ConnectShuffleRoom(ConnectShuffleRoomRequest) returns (stream ShuffleEvent);
+
+  rpc IsReadyForShuffle(IsReadyForShuffleRequest) returns(IsReadyForShuffleResponse);
+
+  rpc ShuffleRound(ShuffleRoundRequest) returns(ShuffleRoundResponse);
+  rpc SignShuffleTx(SignShuffleTxRequest) returns(SignShuffleTxResponse);
+  // rpc ShuffleTxHash(ServiceRequest) returns(ServiceResponse);
+}
