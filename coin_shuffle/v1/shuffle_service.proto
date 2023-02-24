@@ -18,8 +18,10 @@ message JoinShuffleRoomRequest {
   // UTXO id that shuffle participant wanna use for shuffle
   string utxo = 1;
 
-  // ECDSA Signature of the UTXO ID with the UTXO owner private key
+  // ECDSA signature of UTXO ID concatenated with timestamp
   string sign = 2;
+
+  uint64 timestamp = 3;
 }
 
 message JoinShuffleRoomResponse {
