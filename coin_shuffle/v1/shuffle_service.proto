@@ -1,131 +1,70 @@
 syntax = "proto3";
+
 package coin_shuffle.v1;
 
-message RoomAccessJWT {
-  // header:    base64({"alg":"HS256","typ":"JWT"})
-  // payload:   base64({"room_id":"2ee1deab-40b0-4155-b8ab-b2c253e9f6f6","exp":"123456789"})
-  // signature: base64(HMACSHA256(header.payload, secret))
-  // jwt:       header.payload.signature
-  string jwt = 1;
-}
+import "coin_shuffle/v1/types.proto";
+import "coin_shuffle/v1/events.proto";
 
-message BaseRequest {
-  string id = 1;
-  RoomAccessJWT jwt = 2;
+message JoinRequest {
+  // UTXO identifier (U256) that shuffle participant want to use for shuffle
+  bytes utxo_id = 1;
+  uint64 timestamp = 2;
 }
 
 message JoinShuffleRoomRequest {
-  // UTXO id that shuffle participant wanna use for shuffle
-  string utxo = 1;
+  JoinRequest body = 1;
 
-  // ECDSA signature of UTXO ID concatenated with timestamp
-  string sign = 2;
-
-  uint64 timestamp = 3;
+  // ECDSA signature of encoded as proto `body` field
+  bytes signature = 2;
 }
 
 message JoinShuffleRoomResponse {
-  RoomAccessJWT access_jwt = 2;
+  // Token received
+  string room_access_token = 2;
 }
 
 message ConnectShuffleRoomRequest {
-  BaseRequest base = 1;
-}
-
-message ShuffleError {
-  string error = 1;
-
-  enum Code {
-    CODE_UNSPECIFIED = 0;
-  }
-}
-
-message ShuffleEvent {
-  // Unique event identifier
-  string id = 1;
-
-  oneof body {
-    // 0. An error acquired on one of the steps below
-    ShuffleError error = 2;
-    // 1. Receiving of this event means starting of the shuffle process.
-    ShuffleInfo shuffle_info = 3;
-    // 2. Receiving of encoded outputs of all participants in the room.
-    //    After that participant using `ShuffleRound` RPC MUST pass decoded
-    //    outputs to continue shuffle process.
-    EncodedOutputs encoded_outputs = 4;
-    // 3. Receiving decoded outputs of all participants in the room.
-    //    After receiving this event, participant MUST pass signature of
-    //    concatenation of his input and outputs of all other participants
-    //    using `SignShuffleTx` RPC.
-    TxSigningOutputs tx_signing_outputs = 5;
-    // 4. The result transaction hash. The shuffle process is finished.
-    ShuffleTxHash shuffle_tx_hash = 6;
-  }
-}
-
-message IsReadyForShuffleRequest {
-  BaseRequest base = 1;
-}
-
-message IsReadyForShuffleResponse {
-  bool ready = 1;
-}
-
-message ShuffleInfo {
-  // Shuffle participants number
-  int32 participants_number = 1;
-
-  // Participant's serial number in the shuffle process
-  int32 node_serial_number  = 2;
-
-  // HEX encoded shuffle participants public keys.
-  // Unique for every user depend on serial number
-  repeated string public_keys_list = 3;
-}
-
-message EncodedOutputs {
-  // RSA encoded shuffle participants outputs equal to output addresses
-  repeated string outputs_list = 1;
-}
-
-message TxSigningOutputs {
-  // Transaction outputs for signing
-  repeated string outputs = 1;
-}
-
-message ShuffleTxHash {
-  // Shuffle transaction hash
-  string tx_hash = 1;
-}
-
-message DecodedOutputs {
-  // HEX encoded shuffle participants outputs; equal to output addresses
-  repeated string outputs_list = 1;
+  RsaPublicKey public_key = 1;
 }
 
 message ShuffleRoundRequest {
-  BaseRequest base = 1;
-
-  DecodedOutputs encoded_outputs = 2;
+  repeated bytes encoded_outputs = 2;
 }
 
 message ShuffleRoundResponse {}
 
 message SignShuffleTxRequest {
-  BaseRequest base = 1;
-
   // ECDSA Signature of participant's input and list of all outputs
-  string signature = 2;
+  bytes signature = 1;
 }
 
 message SignShuffleTxResponse {}
 
+
+message IsReadyForShuffleRequest {
+  // TODO: in future, will be something like nonce
+  uint64 id = 1;
+}
+
+message IsReadyForShuffleResponse {
+  bool ready = 1;
+
+  // New access token to check if room is ready
+  string room_access_token = 2;
+}
+
 service ShuffleService {
-  rpc JoinShuffleRoom(JoinShuffleRoomRequest) returns(JoinShuffleRoomResponse);
+  rpc JoinShuffleRoom(JoinShuffleRoomRequest) returns (JoinShuffleRoomResponse);
+
+  // Protected with token got from `JoinShuffleRoom` in header
+  rpc IsReadyForShuffle(IsReadyForShuffleRequest) returns (IsReadyForShuffleResponse);
+
+  // Protected with token got from `JoinShuffleRoom` in header
   rpc ConnectShuffleRoom(ConnectShuffleRoomRequest) returns (stream ShuffleEvent);
 
-  rpc IsReadyForShuffle(IsReadyForShuffleRequest) returns(IsReadyForShuffleResponse);
+  // Protected with token got from `ConnectShuffleRoom` from event `ShuffleInfo` in header.
+  rpc ShuffleRound(ShuffleRoundRequest) returns (ShuffleRoundResponse);
 
-  rpc ShuffleRound(ShuffleRoundRequest) returns(ShuffleRoundResponse);
-  rpc SignShuffleTx(SignShuffleTxRequest) returns(SignShuffleTxResponse);
+  // Protected with token got from `ConnectShuffleRoom` from event `ShuffleInfo` in header.
+  rpc SignShuffleTx(SignShuffleTxRequest) returns (SignShuffleTxResponse);
 }

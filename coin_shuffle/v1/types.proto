@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package coin_shuffle.v1;
+
+message RsaPublicKey {
+  // Modulus of the RSA public key represented as a big-endian byte array
+  bytes modulus = 1;
+  // Public exponent of the RSA public key represented as a big-endian byte array
+  bytes exponent = 2;
+}
+
+message DecodedOutput {
+  // Address of the output
+  bytes address = 1;
+}
