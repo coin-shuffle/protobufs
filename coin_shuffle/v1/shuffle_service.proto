@@ -5,21 +5,28 @@ package coin_shuffle.v1;
 import "coin_shuffle/v1/types.proto";
 import "coin_shuffle/v1/events.proto";
 
-message JoinRequest {
-  // UTXO identifier (U256) that shuffle participant want to use for shuffle
-  bytes utxo_id = 1;
-  uint64 timestamp = 2;
-}
-
 message JoinShuffleRoomRequest {
-  JoinRequest body = 1;
+  // U256 is a 256-bit unsigned integer.
+  bytes utxo_id = 1;
+  // UNIX timestamp in seconds.
+  uint64 timestamp = 2;
 
-  // ECDSA signature of encoded as proto `body` field
-  bytes signature = 2;
+  // ECDSA signature of concatenated bytes of `utxo_id` and `timestamp`
+  //
+  // `signature = sign(concat(utxo_id, timestamp))`.
+  bytes signature = 3;
 }
 
 message JoinShuffleRoomResponse {
-  // Token received
+  string room_access_token = 1;
+}
+
+message IsReadyForShuffleRequest {}
+
+message IsReadyForShuffleResponse {
+  bool ready = 1;
+
+  // New access token to check if room is ready
   string room_access_token = 2;
 }
 
@@ -40,18 +47,6 @@ message SignShuffleTxRequest {
 
 message SignShuffleTxResponse {}
 
-
-message IsReadyForShuffleRequest {
-  // TODO: in future, will be something like nonce
-  uint64 id = 1;
-}
-
-message IsReadyForShuffleResponse {
-  bool ready = 1;
-
-  // New access token to check if room is ready
-  string room_access_token = 2;
-}
 
 service ShuffleService {
   rpc JoinShuffleRoom(JoinShuffleRoomRequest) returns (JoinShuffleRoomResponse);
