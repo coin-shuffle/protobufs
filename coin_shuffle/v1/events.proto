@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package coin_shuffle.v1;
+
+import "coin_shuffle/v1/types.proto";
+
+message ShuffleError {
+  string error = 1;
+
+  enum Code {
+    CODE_UNSPECIFIED = 0;
+  }
+}
+
+message ShuffleEvent {
+  oneof body {
+    // 0. An error acquired on one of the steps below
+    ShuffleError error = 1;
+    // 1. Receiving of this event means starting of the shuffle process.
+    ShuffleInfo shuffle_info = 2;
+    // 2. Receiving of encoded outputs of all participants in the room.
+    //    After that participant using `ShuffleRound` RPC MUST pass decoded
+    //    outputs to continue shuffle process.
+    EncodedOutputs encoded_outputs = 3;
+    // 3. Receiving decoded outputs of all participants in the room.
+    //    After receiving this event, participant MUST pass signature of
+    //    concatenation of his input and outputs of all other participants
+    //    using `SignShuffleTx` RPC.
+    TxSigningOutputs tx_signing_outputs = 4;
+    // 4. The result transaction hash. The shuffle process is finished.
+    ShuffleTxHash shuffle_tx_hash = 5;
+  }
+}
+
+message ShuffleInfo {
+  // HEX encoded shuffle participants public keys.
+  // Unique for every user depend on serial number
+  repeated RsaPublicKey public_keys_list = 1;
+
+  // Token given for accessing room in shuffle process
+  string shuffle_access_token = 2;
+}
+
+message EncodedOutputs {
+  // RSA encoded shuffle participants outputs equal to output addresses
+  repeated bytes outputs = 1;
+}
+
+message TxSigningOutputs {
+  // Transaction outputs for signing
+  repeated bytes outputs = 1;
+}
+
+message ShuffleTxHash {
+  // Shuffle transaction hash
+  bytes tx_hash = 1;
+}

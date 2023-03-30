@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package coin_shuffle.v1;
+
+import "coin_shuffle/v1/types.proto";
+import "coin_shuffle/v1/events.proto";
+
+message JoinShuffleRoomRequest {
+  // U256 is a 256-bit unsigned integer.
+  bytes utxo_id = 1;
+  // UNIX timestamp in seconds.
+  uint64 timestamp = 2;
+
+  // ECDSA signature of concatenated bytes of `utxo_id` and `timestamp`
+  //
+  // `signature = sign(concat(utxo_id, timestamp))`.
+  bytes signature = 3;
+}
+
+message JoinShuffleRoomResponse {
+  string room_access_token = 1;
+}
+
+message IsReadyForShuffleRequest {}
+
+message IsReadyForShuffleResponse {
+  bool ready = 1;
+
+  // New access token to check if room is ready
+  string room_access_token = 2;
+}
+
+message ConnectShuffleRoomRequest {
+  RsaPublicKey public_key = 1;
+}
+
+message ShuffleRoundRequest {
+  repeated bytes encoded_outputs = 2;
+}
+
+message ShuffleRoundResponse {}
+
+message SignShuffleTxRequest {
+  // ECDSA Signature of participant's input and list of all outputs
+  bytes signature = 1;
+}
+
+message SignShuffleTxResponse {}
+
+
+service ShuffleService {
+  rpc JoinShuffleRoom(JoinShuffleRoomRequest) returns (JoinShuffleRoomResponse);
+
+  // Protected with token got from `JoinShuffleRoom` in header
+  rpc IsReadyForShuffle(IsReadyForShuffleRequest) returns (IsReadyForShuffleResponse);
+
+  // Protected with token got from `JoinShuffleRoom` in header
+  rpc ConnectShuffleRoom(ConnectShuffleRoomRequest) returns (stream ShuffleEvent);
+
+  // Protected with token got from `ConnectShuffleRoom` from event `ShuffleInfo` in header.
+  rpc ShuffleRound(ShuffleRoundRequest) returns (ShuffleRoundResponse);
+
+  // Protected with token got from `ConnectShuffleRoom` from event `ShuffleInfo` in header.
+  rpc SignShuffleTx(SignShuffleTxRequest) returns (SignShuffleTxResponse);
+}
