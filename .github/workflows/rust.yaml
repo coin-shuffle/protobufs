@@ -1,0 +1,60 @@
+on:
+  push:
+    # tags: [v*]
+
+# Apply to all pull requests
+jobs:
+  generate-push-rust-code:
+    name: Generate rust Proto definitions
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Setup buf"
+        uses: bufbuild/buf-setup-action@v1
+
+      - name: "Install Protoc"
+        uses: arduino/setup-protoc@v1
+
+      - name: "Install protoc-gen-prost"
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: protoc-gen-prost
+
+      - name: "Install protoc-gen-tonic"
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: protoc-gen-tonic
+
+      - name: "Install protoc-gen-prost-crate"
+        uses: baptiste0928/cargo-install@v2
+        with:
+          crate: protoc-gen-prost-crate
+
+      - name: "Checkout"
+        uses: actions/checkout@v2
+
+      - name: "Checkout protobufs-rs"
+        uses: actions/checkout@v2
+        with:
+          repository: "coin-shuffle/protobufs-rs"
+          path: "gen"
+
+      - name: "Get Previous tag"
+        id: previoustag
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+        with:
+          fallback: v0.1.0
+
+      - name: "Generate rust code"
+        run: "buf generate"
+
+      - name: "Push bindings to repo"
+        uses: Velnbur/github-action-push-to-another-repository@main
+        env:
+          SSH_DEPLOY_KEY: ${{ secrets.SSH_PROTOBUFS_RS_DEPLOY_KEY }}
+        with:
+          source-directory: ./gen
+          destination-github-username: "coin-shuffle"
+          destination-repository-name: "protobufs-rs"
+          user-email: "kirillbaybula@gmail.com"
+          target-branch: "generated"
+          tag-name: ${{ steps.previoustag.outputs.tag }}
