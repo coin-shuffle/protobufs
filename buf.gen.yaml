@@ -5,14 +5,17 @@ plugins:
   - name: prost
     out: gen/src
     opt:
-      # - bytes=.
+      - bytes=.
       - compile_well_known_types
+      - extern_path=.google.protobuf=::pbjson_types
       - file_descriptor_set
+  - remote: buf.build/prost/plugins/serde:v0.2.1-1
+    out: gen/src
   - name: tonic
     out: gen/src
     opt:
       - compile_well_known_types
-      # - client_mod_attribute=./='#[cfg(test)]'
+      - extern_path=.google.protobuf=::pbjson_types
   - name: prost-crate
     out: gen
     strategy: all
