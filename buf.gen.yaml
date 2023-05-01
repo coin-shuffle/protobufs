@@ -16,6 +16,8 @@ plugins:
     opt:
       - compile_well_known_types
       - extern_path=.google.protobuf=::pbjson_types
+      - client_mod_attribute=.=#[cfg(feature = "client")]
+      - server_mod_attribute=.=#[cfg(feature = "server")]
   - name: prost-crate
     out: gen
     strategy: all
